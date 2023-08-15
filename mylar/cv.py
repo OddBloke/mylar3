@@ -96,6 +96,10 @@ class CVFetcher:
         url = f"volumes/?api_key={self.api_key}&format=xml&filter=id:{comicidlist}&field_list=name,id,start_year,publisher,description,deck,aliases,count_of_issues&offset={offset}"
         return self._do_xml_request(url)
 
+    def get_db_updater(self, dateinfo, offset: int = 1):
+        url = f"issues/?api_key={self.api_key}&format=json&filter=date_last_updated:{dateinfo['start_date']}|{dateinfo['end_date']}&field_list=date_last_updated,id,volume,issue_number&sort=date_last_updated:asc&offset={offset}"
+        return self._do_json_request(url)
+
     def get_front_matter(self, issue_id: str):
         url = f"issues/?api_key={self.api_key}&format=xml&filter=id:{issue_id}&field_list=cover_date,store_date,image"
         return self._do_xml_request(url)
@@ -156,7 +160,7 @@ def pulldetails(comicid, rtype, issueid=None, offset=1, arclist=None, comicidlis
     elif rtype == 'single_issue':
         return fetcher.get_single_issue(issueid)
     elif rtype == 'db_updater':
-        PULLURL = mylar.CVURL + 'issues/?api_key=' + str(comicapi) + '&format=json&filter=date_last_updated:'+dateinfo['start_date']+'|'+dateinfo['end_date']+'&field_list=date_last_updated,id,volume,issue_number&sort=date_last_updated:asc&offset=' + str(offset)
+        return fetcher.get_db_updater(dateinfo, offset)
     logger.info('CV.PULLURL: ' + PULLURL)
     #new CV API restriction - one api request / second.
     if mylar.CONFIG.CVAPI_RATE is None or mylar.CONFIG.CVAPI_RATE < 2:
