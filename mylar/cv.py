@@ -23,6 +23,7 @@ import requests
 import datetime
 from operator import itemgetter
 from dataclasses import dataclass
+from typing import Optional
 
 
 @dataclass
@@ -76,6 +77,24 @@ class CVFetcher:
             return maybe_response
         return self._parse_xml_response(maybe_response)
 
+    def get_issues(self, comicid: Optional[str], offset: int = 1, arclist: Optional[str] = None):
+        if mylar.CONFIG.CV_ONLY:
+            cv_rtype = 'issues'
+            if arclist is None:
+                searchset = 'filter=volume:' + str(comicid) + '&field_list=cover_date,description,id,image,issue_number,name,date_last_updated,store_date'
+            else:
+                searchset = 'filter=id:' + (arclist) + '&field_list=cover_date,id,issue_number,name,date_last_updated,store_date,volume'
+        else:
+            cv_rtype = 'volume/' + str(comicid)
+            searchset = 'name,count_of_issues,issues,start_year,site_detail_url,image,publisher,description,store_date'
+        url = f"{cv_rtype}/?api_key={self.api_key}&format=xml&{searchset}&offset={offset}"
+
+        maybe_response = self._do_request(url)
+        logger.fdebug(f"RES: {maybe_response}")
+        if not maybe_response:
+            return maybe_response
+        return self._parse_xml_response(maybe_response)
+
 
 def pulldetails(comicid, rtype, issueid=None, offset=1, arclist=None, comicidlist=None, dateinfo=None):
     #import easy to use xml parser called minidom:
@@ -93,16 +112,7 @@ def pulldetails(comicid, rtype, issueid=None, offset=1, arclist=None, comicidlis
     if rtype == 'comic':
         return fetcher.get_comic(comicid)
     elif rtype == 'issue':
-        if mylar.CONFIG.CV_ONLY:
-            cv_rtype = 'issues'
-            if arclist is None:
-                searchset = 'filter=volume:' + str(comicid) + '&field_list=cover_date,description,id,image,issue_number,name,date_last_updated,store_date'
-            else:
-                searchset = 'filter=id:' + (arclist) + '&field_list=cover_date,id,issue_number,name,date_last_updated,store_date,volume'
-        else:
-            cv_rtype = 'volume/' + str(comicid)
-            searchset = 'name,count_of_issues,issues,start_year,site_detail_url,image,publisher,description,store_date'
-        PULLURL = mylar.CVURL + str(cv_rtype) + '/?api_key=' + str(comicapi) + '&format=xml&' + str(searchset) + '&offset=' + str(offset)
+        return fetcher.get_issues(comicid, offset, arclist)
     elif any([rtype == 'image', rtype == 'firstissue', rtype == 'imprints_first']):
         #this is used ONLY for CV_ONLY
         PULLURL = mylar.CVURL + 'issues/?api_key=' + str(comicapi) + '&format=xml&filter=id:' + str(issueid) + '&field_list=cover_date,store_date,image'
