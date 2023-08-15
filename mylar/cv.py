@@ -89,6 +89,10 @@ class CVFetcher:
         url = f"issues/?api_key={self.api_key}&format=xml&filter=id:{issue_id}&field_list=cover_date,store_date,image"
         return self._do_xml_request(url)
 
+    def get_import(self, comicidlist, offset: int = 1):
+        url = f"issues/?api_key={self.api_key}&format=xml&filter=id:{comicidlist}&field_list=cover_date,id,issue_number,name,date_last_updated,store_date,volume&offset={offset}"
+        return self._do_xml_request(url)
+
     def get_issues(self, comicid: Optional[str], offset: int = 1, arclist: Optional[str] = None):
         if mylar.CONFIG.CV_ONLY:
             cv_rtype = 'issues'
@@ -132,7 +136,7 @@ def pulldetails(comicid, rtype, issueid=None, offset=1, arclist=None, comicidlis
     elif rtype == 'comicyears':
         return fetcher.get_comicyears(comicidlist, offset)
     elif rtype == 'import':
-        PULLURL = mylar.CVURL + 'issues/?api_key=' + str(comicapi) + '&format=xml&filter=id:' + (comicidlist) + '&field_list=cover_date,id,issue_number,name,date_last_updated,store_date,volume' + '&offset=' + str(offset)
+        return fetcher.get_import(comicidlist, offset)
     elif rtype == 'single_issue':
         #this is used for retrieving single issue metadata for use when displaying metadata information for a selected issue.
         PULLURL = mylar.CVURL + 'issue/4000-' + str(issueid) + '?api_key=' + str(comicapi) + '&format=json'
