@@ -81,6 +81,10 @@ class CVFetcher:
         url = f"volume/{comicid}/?api_key={self.api_key}&format=xml&field_list=name,count_of_issues,issues,start_year,site_detail_url,image,publisher,description,first_issue,deck,aliases"
         return self._do_xml_request(url)
 
+    def get_comicyears(self, comicidlist, offset: int = 1):
+        url = f"volumes/?api_key={self.api_key}&format=xml&filter=id:{comicidlist}&field_list=name,id,start_year,publisher,description,deck,aliases,count_of_issues&offset={offset}"
+        return self._do_xml_request(url)
+
     def get_front_matter(self, issue_id: str):
         url = f"issues/?api_key={self.api_key}&format=xml&filter=id:{issue_id}&field_list=cover_date,store_date,image"
         return self._do_xml_request(url)
@@ -126,7 +130,7 @@ def pulldetails(comicid, rtype, issueid=None, offset=1, arclist=None, comicidlis
     elif rtype == 'storyarc':
         return fetcher.get_storyarc(issueid)
     elif rtype == 'comicyears':
-        PULLURL = mylar.CVURL + 'volumes/?api_key=' + str(comicapi) + '&format=xml&filter=id:' + str(comicidlist) + '&field_list=name,id,start_year,publisher,description,deck,aliases,count_of_issues&offset=' + str(offset)
+        return fetcher.get_comicyears(comicidlist, offset)
     elif rtype == 'import':
         PULLURL = mylar.CVURL + 'issues/?api_key=' + str(comicapi) + '&format=xml&filter=id:' + (comicidlist) + '&field_list=cover_date,id,issue_number,name,date_last_updated,store_date,volume' + '&offset=' + str(offset)
     elif rtype == 'single_issue':
