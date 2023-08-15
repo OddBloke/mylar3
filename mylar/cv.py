@@ -67,15 +67,18 @@ class CVFetcher:
             mylar.BACKENDSTATUS_CV = 'down'
         return None
 
-    def get_comic(self, comicid: str):
-        if not comicid.startswith('4050-'):
-            comicid = '4050-' + comicid
-        url = f"volume/{comicid}/?api_key={self.api_key}&format=xml&field_list=name,count_of_issues,issues,start_year,site_detail_url,image,publisher,description,first_issue,deck,aliases"
+    def _do_xml_request(self, url):
         maybe_response = self._do_request(url)
         logger.fdebug(f"RES: {maybe_response}")
         if not maybe_response:
             return maybe_response
         return self._parse_xml_response(maybe_response)
+
+    def get_comic(self, comicid: str):
+        if not comicid.startswith('4050-'):
+            comicid = '4050-' + comicid
+        url = f"volume/{comicid}/?api_key={self.api_key}&format=xml&field_list=name,count_of_issues,issues,start_year,site_detail_url,image,publisher,description,first_issue,deck,aliases"
+        return self._do_xml_request(url)
 
     def get_issues(self, comicid: Optional[str], offset: int = 1, arclist: Optional[str] = None):
         if mylar.CONFIG.CV_ONLY:
@@ -88,12 +91,7 @@ class CVFetcher:
             cv_rtype = 'volume/' + str(comicid)
             searchset = 'name,count_of_issues,issues,start_year,site_detail_url,image,publisher,description,store_date'
         url = f"{cv_rtype}/?api_key={self.api_key}&format=xml&{searchset}&offset={offset}"
-
-        maybe_response = self._do_request(url)
-        logger.fdebug(f"RES: {maybe_response}")
-        if not maybe_response:
-            return maybe_response
-        return self._parse_xml_response(maybe_response)
+        return self._do_xml_request(url)
 
 
 def pulldetails(comicid, rtype, issueid=None, offset=1, arclist=None, comicidlist=None, dateinfo=None):
