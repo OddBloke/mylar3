@@ -23,6 +23,7 @@ import requests
 import datetime
 from operator import itemgetter
 from dataclasses import dataclass
+from json import JSONDecodeError
 from typing import Optional
 
 
@@ -52,6 +53,16 @@ class CVFetcher:
 
         mylar.BACKENDSTATUS_CV = 'up'
         return response
+
+    def _do_json_request(self, url: str):
+        response = self._do_request(url)
+        if not response:
+            return response
+        try:
+            return response.json()
+        except JSONDecodeError:
+            return False
+        return None
 
     def _parse_xml_response(self, response: requests.Response):
         from xml.dom.minidom import parseString
@@ -106,6 +117,11 @@ class CVFetcher:
         url = f"{cv_rtype}/?api_key={self.api_key}&format=xml&{searchset}&offset={offset}"
         return self._do_xml_request(url)
 
+    def get_single_issue(self, issueid: str):
+        #this is used for retrieving single issue metadata for use when displaying metadata information for a selected issue.
+        url = f"issue/4000-{issueid}?api_key={self.api_key}&format=json"
+        return self._do_json_request(url)
+
     def get_storyarc(self, issue_id: str):
         url = f"story_arcs/?api_key={self.api_key}&format=xml&filter=name:{issue_id}&field_list=cover_date"
         return self._do_xml_request(url)
@@ -138,8 +154,7 @@ def pulldetails(comicid, rtype, issueid=None, offset=1, arclist=None, comicidlis
     elif rtype == 'import':
         return fetcher.get_import(comicidlist, offset)
     elif rtype == 'single_issue':
-        #this is used for retrieving single issue metadata for use when displaying metadata information for a selected issue.
-        PULLURL = mylar.CVURL + 'issue/4000-' + str(issueid) + '?api_key=' + str(comicapi) + '&format=json'
+        return fetcher.get_single_issue(issueid)
     elif rtype == 'db_updater':
         PULLURL = mylar.CVURL + 'issues/?api_key=' + str(comicapi) + '&format=json&filter=date_last_updated:'+dateinfo['start_date']+'|'+dateinfo['end_date']+'&field_list=date_last_updated,id,volume,issue_number&sort=date_last_updated:asc&offset=' + str(offset)
     logger.info('CV.PULLURL: ' + PULLURL)
