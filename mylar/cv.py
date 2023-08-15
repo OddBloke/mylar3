@@ -22,6 +22,60 @@ from xml.parsers.expat import ExpatError
 import requests
 import datetime
 from operator import itemgetter
+from dataclasses import dataclass
+
+
+@dataclass
+class CVFetcher:
+    cv_root: str
+    api_key: str
+
+    def __post_init__(self):
+        logger.fdebug("Instantiated CVFetcher")
+
+    def _do_request(self, url: str, mark_down: bool = True):
+        if mylar.CONFIG.CVAPI_RATE is None or mylar.CONFIG.CVAPI_RATE < 2:
+            time.sleep(2)
+        else:
+            time.sleep(mylar.CONFIG.CVAPI_RATE)
+
+        url = self.cv_root + url
+        try:
+            response = requests.get(url, verify=mylar.CONFIG.CV_VERIFY, headers=mylar.CV_HEADERS)
+        except Exception as e:
+            logger.warn('Error fetching data from ComicVine: %s' % (e))
+            if mark_down:
+                mylar.BACKENDSTATUS_CV = 'down'
+            return False
+
+        mylar.BACKENDSTATUS_CV = 'up'
+        return response
+
+    def _parse_xml_response(self, response: requests.Response):
+        from xml.dom.minidom import parseString
+        try:
+            return parseString(response.content)
+        except ExpatError:
+            if '<title>Abnormal Traffic Detected' in response.text:
+                logger.error('ComicVine has banned this server\'s IP address because it exceeded the API rate limit.')
+            else:
+                logger.warn('[WARNING] ComicVine is not responding correctly at the moment. This is usually due to some problems on their end. If you re-try things again in a few moments, things might work')
+                mylar.BACKENDSTATUS_CV = 'down'
+        except Exception as e:
+            logger.warn('[ERROR] Error returned from CV: %s [%s]' % (e, r.content))
+            mylar.BACKENDSTATUS_CV = 'down'
+        return None
+
+    def get_comic(self, comicid: str):
+        if not comicid.startswith('4050-'):
+            comicid = '4050-' + comicid
+        url = f"volume/{comicid}/?api_key={self.api_key}&format=xml&field_list=name,count_of_issues,issues,start_year,site_detail_url,image,publisher,description,first_issue,deck,aliases"
+        maybe_response = self._do_request(url)
+        logger.fdebug(f"RES: {maybe_response}")
+        if not maybe_response:
+            return maybe_response
+        return self._parse_xml_response(maybe_response)
+
 
 def pulldetails(comicid, rtype, issueid=None, offset=1, arclist=None, comicidlist=None, dateinfo=None):
     #import easy to use xml parser called minidom:
@@ -33,9 +87,11 @@ def pulldetails(comicid, rtype, issueid=None, offset=1, arclist=None, comicidlis
     else:
         comicapi = mylar.CONFIG.COMICVINE_API
 
+    fetcher = CVFetcher(mylar.CVURL, comicapi)
+
+    logger.fdebug(f"Request Type: {rtype}")
     if rtype == 'comic':
-        if not comicid.startswith('4050-'): comicid = '4050-' + comicid
-        PULLURL = mylar.CVURL + 'volume/' + str(comicid) + '/?api_key=' + str(comicapi) + '&format=xml&field_list=name,count_of_issues,issues,start_year,site_detail_url,image,publisher,description,first_issue,deck,aliases'
+        return fetcher.get_comic(comicid)
     elif rtype == 'issue':
         if mylar.CONFIG.CV_ONLY:
             cv_rtype = 'issues'
