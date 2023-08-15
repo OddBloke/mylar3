@@ -41,6 +41,7 @@ class CVFetcher:
             time.sleep(mylar.CONFIG.CVAPI_RATE)
 
         url = self.cv_root + url
+        logger.fdebug(f"URL: {url}")
         try:
             response = requests.get(url, verify=mylar.CONFIG.CV_VERIFY, headers=mylar.CV_HEADERS)
         except Exception as e:
@@ -133,7 +134,7 @@ def pulldetails(comicid, rtype, issueid=None, offset=1, arclist=None, comicidlis
         PULLURL = mylar.CVURL + 'issue/4000-' + str(issueid) + '?api_key=' + str(comicapi) + '&format=json'
     elif rtype == 'db_updater':
         PULLURL = mylar.CVURL + 'issues/?api_key=' + str(comicapi) + '&format=json&filter=date_last_updated:'+dateinfo['start_date']+'|'+dateinfo['end_date']+'&field_list=date_last_updated,id,volume,issue_number&sort=date_last_updated:asc&offset=' + str(offset)
-    #logger.info('CV.PULLURL: ' + PULLURL)
+    logger.info('CV.PULLURL: ' + PULLURL)
     #new CV API restriction - one api request / second.
     if mylar.CONFIG.CVAPI_RATE is None or mylar.CONFIG.CVAPI_RATE < 2:
         time.sleep(2)
