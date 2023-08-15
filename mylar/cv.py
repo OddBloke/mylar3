@@ -161,48 +161,7 @@ def pulldetails(comicid, rtype, issueid=None, offset=1, arclist=None, comicidlis
         return fetcher.get_single_issue(issueid)
     elif rtype == 'db_updater':
         return fetcher.get_db_updater(dateinfo, offset)
-    logger.info('CV.PULLURL: ' + PULLURL)
-    #new CV API restriction - one api request / second.
-    if mylar.CONFIG.CVAPI_RATE is None or mylar.CONFIG.CVAPI_RATE < 2:
-        time.sleep(2)
-    else:
-        time.sleep(mylar.CONFIG.CVAPI_RATE)
-
-    try:
-        r = requests.get(PULLURL, verify=mylar.CONFIG.CV_VERIFY, headers=mylar.CV_HEADERS)
-    except Exception as e:
-        logger.warn('Error fetching data from ComicVine: %s' % (e))
-        if all(['Expecting value: line 1 column 1' not in str(e), rtype != 'db_updater']):
-            mylar.BACKENDSTATUS_CV = 'down'
-            return
-        else:
-            return False
-
-    mylar.BACKENDSTATUS_CV = 'up'
-    #logger.fdebug('cv status code : ' + str(r.status_code))
-    #logger.fdebug('rtype: %s' % rtype)
-    try:
-        if any([rtype == 'single_issue', rtype == 'db_updater']):
-            dom = r.json()
-            #logger.info('cv_data returned: %s' % dom)
-        else:
-            dom = parseString(r.content)
-    except ExpatError:
-        if '<title>Abnormal Traffic Detected' in r.content.decode('utf-8'):
-            logger.error('ComicVine has banned this server\'s IP address because it exceeded the API rate limit.')
-        else:
-            logger.warn('[WARNING] ComicVine is not responding correctly at the moment. This is usually due to some problems on their end. If you re-try things again in a few moments, things might work')
-            mylar.BACKENDSTATUS_CV = 'down'
-        return
-    except Exception as e:
-        if all(['Expecting value: line 1 column 1' in str(e), rtype == 'db_updater']):
-            return False
-        else:
-            logger.warn('[ERROR] Error returned from CV: %s [%s]' % (e, r.content))
-            mylar.BACKENDSTATUS_CV = 'down'
-            return
-    else:
-        return dom
+    raise Exception(f"Invalid rtype: {rtype}")
 
 def getComic(comicid, rtype, issueid=None, arc=None, arcid=None, arclist=None, comicidlist=None, dateinfo=None, series=False):
     if rtype == 'issue':
