@@ -97,6 +97,10 @@ class CVFetcher:
         url = f"{cv_rtype}/?api_key={self.api_key}&format=xml&{searchset}&offset={offset}"
         return self._do_xml_request(url)
 
+    def get_storyarc(self, issue_id: str):
+        url = f"story_arcs/?api_key={self.api_key}&format=xml&filter=name:{issue_id}&field_list=cover_date"
+        return self._do_xml_request(url)
+
 
 def pulldetails(comicid, rtype, issueid=None, offset=1, arclist=None, comicidlist=None, dateinfo=None):
     #import easy to use xml parser called minidom:
@@ -119,7 +123,7 @@ def pulldetails(comicid, rtype, issueid=None, offset=1, arclist=None, comicidlis
         #this is used ONLY for CV_ONLY
         return fetcher.get_front_matter(issueid)
     elif rtype == 'storyarc':
-        PULLURL = mylar.CVURL + 'story_arcs/?api_key=' + str(comicapi) + '&format=xml&filter=name:' + str(issueid) + '&field_list=cover_date'
+        return fetcher.get_storyarc(issueid)
     elif rtype == 'comicyears':
         PULLURL = mylar.CVURL + 'volumes/?api_key=' + str(comicapi) + '&format=xml&filter=id:' + str(comicidlist) + '&field_list=name,id,start_year,publisher,description,deck,aliases,count_of_issues&offset=' + str(offset)
     elif rtype == 'import':
