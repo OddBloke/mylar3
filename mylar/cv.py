@@ -80,6 +80,10 @@ class CVFetcher:
         url = f"volume/{comicid}/?api_key={self.api_key}&format=xml&field_list=name,count_of_issues,issues,start_year,site_detail_url,image,publisher,description,first_issue,deck,aliases"
         return self._do_xml_request(url)
 
+    def get_front_matter(self, issue_id: str):
+        url = f"issues/?api_key={self.api_key}&format=xml&filter=id:{issue_id}&field_list=cover_date,store_date,image"
+        return self._do_xml_request(url)
+
     def get_issues(self, comicid: Optional[str], offset: int = 1, arclist: Optional[str] = None):
         if mylar.CONFIG.CV_ONLY:
             cv_rtype = 'issues'
@@ -113,7 +117,7 @@ def pulldetails(comicid, rtype, issueid=None, offset=1, arclist=None, comicidlis
         return fetcher.get_issues(comicid, offset, arclist)
     elif any([rtype == 'image', rtype == 'firstissue', rtype == 'imprints_first']):
         #this is used ONLY for CV_ONLY
-        PULLURL = mylar.CVURL + 'issues/?api_key=' + str(comicapi) + '&format=xml&filter=id:' + str(issueid) + '&field_list=cover_date,store_date,image'
+        return fetcher.get_front_matter(issueid)
     elif rtype == 'storyarc':
         PULLURL = mylar.CVURL + 'story_arcs/?api_key=' + str(comicapi) + '&format=xml&filter=name:' + str(issueid) + '&field_list=cover_date'
     elif rtype == 'comicyears':
