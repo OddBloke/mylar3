@@ -114,3 +114,18 @@ class TestPullDetails:
         assert url_parts.path == "/issue/4000-1234"
 
         assert query_parts["format"] == "json"
+
+    def test_db_updater(self):
+        date_info = {"start_date": "SD", "end_date": "ED"}
+        with mock.patch("mylar.cv.requests.get") as m_get:
+            m_get.return_value.content = b'<?xml version="1.0" encoding="utf-8"?><response/>'
+            cv.pulldetails(None, "db_updater", dateinfo=date_info, offset=4)
+
+        url_parts, query_parts = self._get_validated_parts(m_get)
+        assert url_parts.path == "/issues/"
+
+        assert query_parts["format"] == "json"
+        assert query_parts["filter"] == f"date_last_updated:{date_info['start_date']}|{date_info['end_date']}"
+        assert query_parts["field_list"] == "date_last_updated,id,volume,issue_number"
+        assert query_parts["sort"] == "date_last_updated:asc"
+        assert query_parts["offset"] == "4"
