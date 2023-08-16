@@ -1,6 +1,8 @@
 from unittest import mock
 from urllib.parse import parse_qs, urlparse
 
+import pytest
+
 from mylar import cv
 
 
@@ -51,3 +53,16 @@ class TestPullDetails:
 
         assert query_parts["format"] == "xml"
         assert query_parts["field_list"] == "name,count_of_issues,issues,start_year,site_detail_url,image,publisher,description,first_issue,deck,aliases"
+
+    @pytest.mark.parametrize("rtype", ("image", "firstissue", "imprints_first"))
+    def test_frontmatter(self, rtype):
+        with mock.patch("mylar.cv.requests.get") as m_get:
+            m_get.return_value.content = b'<?xml version="1.0" encoding="utf-8"?><response/>'
+            cv.pulldetails(None, rtype, issueid="4321")
+
+        url_parts, query_parts = self._get_validated_parts(m_get)
+        assert url_parts.path == "/issues/"
+
+        assert query_parts["format"] == "xml"
+        assert query_parts["filter"] == "id:4321"
+        assert query_parts["field_list"] == "cover_date,store_date,image"
