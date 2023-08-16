@@ -104,3 +104,13 @@ class TestPullDetails:
         assert query_parts["filter"] == "id:1|2|3|4"
         assert query_parts["field_list"] == "cover_date,id,issue_number,name,date_last_updated,store_date,volume"
         assert query_parts["offset"] == "4"
+
+    def test_single_issue(self):
+        with mock.patch("mylar.cv.requests.get") as m_get:
+            m_get.return_value.content = b'{}'
+            cv.pulldetails(None, "single_issue", issueid="1234")
+
+        url_parts, query_parts = self._get_validated_parts(m_get)
+        assert url_parts.path == "/issue/4000-1234"
+
+        assert query_parts["format"] == "json"
