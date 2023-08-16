@@ -91,3 +91,16 @@ class TestPullDetails:
         assert query_parts["filter"] == "id:1|2|3|4"
         assert query_parts["field_list"] == "name,id,start_year,publisher,description,deck,aliases,count_of_issues"
         assert query_parts["offset"] == "4"
+
+    def test_import(self):
+        with mock.patch("mylar.cv.requests.get") as m_get:
+            m_get.return_value.content = b'<?xml version="1.0" encoding="utf-8"?><response/>'
+            cv.pulldetails(None, "import", comicidlist="1|2|3|4", offset=4)
+
+        url_parts, query_parts = self._get_validated_parts(m_get)
+        assert url_parts.path == "/issues/"
+
+        assert query_parts["format"] == "xml"
+        assert query_parts["filter"] == "id:1|2|3|4"
+        assert query_parts["field_list"] == "cover_date,id,issue_number,name,date_last_updated,store_date,volume"
+        assert query_parts["offset"] == "4"
