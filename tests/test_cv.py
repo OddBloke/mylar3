@@ -21,6 +21,7 @@ def _unwrapping_parse_qs(query):
 class FakeConfigModule:
     COMICVINE_API = FAKE_CV_API_KEY
     CVAPI_RATE = 2
+    CV_ONLY = False
     CV_VERIFY = False
 
 
@@ -53,6 +54,49 @@ class TestPullDetails:
 
         assert query_parts["format"] == "xml"
         assert query_parts["field_list"] == "name,count_of_issues,issues,start_year,site_detail_url,image,publisher,description,first_issue,deck,aliases"
+
+    def test_issue_cv_only_no_arclist(self):
+        cv.mylar.CONFIG.CV_ONLY = True
+        with mock.patch("mylar.cv.requests.get") as m_get:
+            m_get.return_value.content = b'<?xml version="1.0" encoding="utf-8"?><response/>'
+            cv.pulldetails("1234", "issue", offset=4)
+
+        url_parts, query_parts = self._get_validated_parts(m_get)
+        assert url_parts.path == "/issues/"
+
+        assert query_parts["format"] == "xml"
+        assert query_parts["filter"] == "volume:1234"
+        assert query_parts["field_list"] == "cover_date,description,id,image,issue_number,name,date_last_updated,store_date"
+        assert query_parts["offset"] == "4"
+
+    def test_issue_cv_only_arclist(self):
+        cv.mylar.CONFIG.CV_ONLY = True
+        with mock.patch("mylar.cv.requests.get") as m_get:
+            m_get.return_value.content = b'<?xml version="1.0" encoding="utf-8"?><response/>'
+            cv.pulldetails(None, "issue", arclist="1|2|3|4", offset=4)
+
+        url_parts, query_parts = self._get_validated_parts(m_get)
+        assert url_parts.path == "/issues/"
+
+        assert query_parts["format"] == "xml"
+        assert query_parts["filter"] == "id:1|2|3|4"
+        assert query_parts["field_list"] == "cover_date,id,issue_number,name,date_last_updated,store_date,volume"
+        assert query_parts["offset"] == "4"
+
+    def test_issue_not_cv_only(self):
+        cv.mylar.CONFIG.CV_ONLY = False
+        with mock.patch("mylar.cv.requests.get") as m_get:
+            m_get.return_value.content = b'<?xml version="1.0" encoding="utf-8"?><response/>'
+            cv.pulldetails("1234", "issue", offset=4)
+
+        url_parts, query_parts = self._get_validated_parts(m_get)
+        # This is what the code currently does, it should be 4050-1234 like 'comic'
+        assert url_parts.path == "/volume/1234/"
+
+        # The code currently doesn't prepend `field_list=` to its field list,
+        # so the fields aren't honoured
+        assert query_parts["format"] == "xml"
+        assert query_parts["offset"] == "4"
 
     @pytest.mark.parametrize("rtype", ("image", "firstissue", "imprints_first"))
     def test_frontmatter(self, rtype):
