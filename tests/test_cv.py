@@ -66,3 +66,15 @@ class TestPullDetails:
         assert query_parts["format"] == "xml"
         assert query_parts["filter"] == "id:4321"
         assert query_parts["field_list"] == "cover_date,store_date,image"
+
+    def test_storyarc(self):
+        with mock.patch("mylar.cv.requests.get") as m_get:
+            m_get.return_value.content = b'<?xml version="1.0" encoding="utf-8"?><response/>'
+            cv.pulldetails(None, "storyarc", issueid="4321")
+
+        url_parts, query_parts = self._get_validated_parts(m_get)
+        assert url_parts.path == "/story_arcs/"
+
+        assert query_parts["format"] == "xml"
+        assert query_parts["filter"] == "name:4321"
+        assert query_parts["field_list"] == "cover_date"
